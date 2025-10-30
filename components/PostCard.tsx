@@ -24,16 +24,16 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     };
 
     return (
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
             <div className="p-3 flex items-center">
                 <img src={post.profileUrl} alt="Profile" className="w-12 h-12 rounded-full mr-3 object-cover" />
                 <div>
-                    <span className="font-bold text-gray-800">{post.author}</span>
-                    <span className="text-sm text-gray-500 block">{post.handle} • {post.timestamp} ({post.createdAt})</span>
+                    <span className="font-bold text-gray-800 dark:text-gray-200">{post.author}</span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400 block">{post.handle} • {post.timestamp} ({post.createdAt})</span>
                 </div>
             </div>
             <div className="px-3 pb-3">
-                <p className="text-gray-800 mb-3">{post.content}</p>
+                <p className="text-gray-800 dark:text-gray-300 mb-3">{post.content}</p>
                 {hasImages && (
                     <div className="mt-3 rounded-lg w-full object-cover relative">
                         <img src={post.imageUrls![currentImageIndex]} alt={`Post content ${currentImageIndex + 1}`} className="w-full rounded-lg" />
@@ -55,7 +55,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                     </div>
                 )}
             </div>
-            <div className="flex justify-around p-2 border-t border-gray-200 text-gray-500 text-sm">
+            <div className="flex justify-around p-2 border-t border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm">
                 <button className="flex items-center space-x-1 hover:text-blue-500 transition-colors">
                     <i className="far fa-comment"></i> <span>{post.stats.comments}</span>
                 </button>

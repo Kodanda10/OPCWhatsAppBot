@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React from 'react';
 import { PostType, TabNode, BannerType } from './types';
 import Header from './components/Header';
 import Banner from './components/Banner';
@@ -6,6 +6,8 @@ import ChannelInfo from './components/ChannelInfo';
 import Footer from './components/Footer';
 import PostCard from './components/PostCard';
 import CMSPanel from './components/cms/CMSPanel';
+import usePersistentState from './hooks/usePersistentState';
+import { ThemeProvider } from './context/ThemeContext';
 
 // Stable Placeholder Images
 const profileImageUrl = 'https://placehold.co/100x100/EFEFEF/333333?text=DP';
@@ -40,7 +42,6 @@ const initialTabsData: TabNode[] = [
     { id: 'vision', label: 'विज़न', children: [] },
 ];
 
-
 const TabBar: React.FC<{
     tabs: TabNode[];
     activeTabId: string | undefined;
@@ -51,7 +52,7 @@ const TabBar: React.FC<{
 
     if (level === 0) { // Main tabs
         return (
-             <nav className="bg-[#075E54] text-gray-300 font-medium flex-shrink-0">
+             <nav className="bg-[#075E54] dark:bg-gray-800 text-gray-300 font-medium flex-shrink-0">
                 <div className="flex justify-around">
                     {tabs.map(tab => (
                         <button
@@ -71,15 +72,15 @@ const TabBar: React.FC<{
     
     // Sub-tabs
     return (
-        <div className="flex overflow-x-auto space-x-2 p-2 mb-4 bg-gray-100 rounded-lg">
+        <div className="flex overflow-x-auto space-x-2 p-2 mb-4 bg-gray-100 dark:bg-gray-700/50 rounded-lg">
             {tabs.map(tab => (
                 <button
                     key={tab.id}
                     onClick={() => onTabClick(tab.id)}
                     className={`whitespace-nowrap border px-4 py-1 rounded-full text-sm transition-colors duration-200 ${
                         activeTabId === tab.id
-                            ? 'bg-[#DCF8C6] text-gray-800 border-[#DCF8C6]'
-                            : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+                            ? 'bg-[#DCF8C6] dark:bg-green-400 text-gray-800 dark:text-black border-transparent'
+                            : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}
                 >
                     {tab.label}
@@ -89,26 +90,24 @@ const TabBar: React.FC<{
     );
 };
 
-
 const InfoCard: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-    <div className="bg-white p-3 rounded-lg shadow-sm">
-        <h3 className="font-bold text-green-800 mb-2">{title}</h3>
-        <p className="text-sm text-gray-600">{children}</p>
+    <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+        <h3 className="font-bold text-green-800 dark:text-green-400 mb-2">{title}</h3>
+        <p className="text-sm text-gray-600 dark:text-gray-300">{children}</p>
     </div>
 );
 
-
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
     // CMS State
-    const [isAdminMode, setIsAdminMode] = useState(false);
+    const [isAdminMode, setIsAdminMode] = usePersistentState('isAdminMode', false);
 
-    // Content State
-    const [bannerData, setBannerData] = useState<BannerType>(initialBannerData);
-    const [postsData, setPostsData] = useState<PostType[]>([]); // Central array for all posts
-    const [tabsData, setTabsData] = useState<TabNode[]>(initialTabsData);
+    // Content State using the persistence hook
+    const [bannerData, setBannerData] = usePersistentState<BannerType>('app-bannerData', initialBannerData);
+    const [postsData, setPostsData] = usePersistentState<PostType[]>('app-postsData', []);
+    const [tabsData, setTabsData] = usePersistentState<TabNode[]>('app-tabsData', initialTabsData);
     
     // UI State
-    const [activeTabPath, setActiveTabPath] = useState<string[]>(['rajya']);
+    const [activeTabPath, setActiveTabPath] = usePersistentState<string[]>('app-activeTabPath', ['rajya']);
 
     const addPost = (tabId: string, newPostContent: Omit<PostType, 'id' | 'timestamp' | 'profileUrl' | 'stats' | 'author' | 'handle' | 'isEnabled' | 'tabId' | 'createdAt'>) => {
         const newPost: PostType = {
@@ -151,7 +150,6 @@ const App: React.FC = () => {
 
         setTabsData(prev => addRecursively(prev));
     };
-
 
     const renderMainContent = () => {
         let currentLevelNodes = tabsData;
@@ -199,7 +197,7 @@ const App: React.FC = () => {
     }
 
     return (
-        <div className="flex flex-col h-screen max-w-lg mx-auto bg-white shadow-lg relative" style={{
+        <div className="flex flex-col h-screen max-w-lg mx-auto bg-white dark:bg-gray-900 shadow-lg relative" style={{
             backgroundImage: "url('https://i.pinimg.com/736x/8c/98/99/8c98994518b575bfd8c949e91d20548b.jpg')",
             backgroundRepeat: 'repeat',
         }}>
@@ -214,7 +212,7 @@ const App: React.FC = () => {
                 
                 <TabBar tabs={tabsData} activeTabId={activeTabPath[0]} onTabClick={(id) => setActiveTabPath([id])} level={0} />
                 
-                <main className="flex-grow p-4 overflow-y-auto bg-[#ECE5DD]">
+                <main className="flex-grow p-4 overflow-y-auto bg-[#ECE5DD] dark:bg-gray-900/80 backdrop-blur-sm">
                     {renderMainContent()}
                 </main>
             </div>
@@ -222,5 +220,12 @@ const App: React.FC = () => {
         </div>
     );
 };
+
+const App: React.FC = () => (
+    <ThemeProvider>
+        <AppContent />
+    </ThemeProvider>
+);
+
 
 export default App;

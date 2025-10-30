@@ -43,7 +43,7 @@ const CMSPanel: React.FC<CMSPanelProps> = (props) => {
     };
 
     return (
-        <div className="flex h-screen bg-gray-100 font-sans">
+        <div className="flex h-screen bg-gray-100 dark:bg-gray-900 font-sans">
             <CMSSidebar activeView={activeView} setActiveView={setActiveView} onExitAdminMode={onExitAdminMode} />
             <main className="flex-1 p-8 overflow-y-auto">
                 {renderActiveView()}
