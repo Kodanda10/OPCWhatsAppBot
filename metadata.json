@@ -1,0 +1,5 @@
+{
+  "name": "Shri OPC WhatsApp Chatbot",
+  "description": "A React-based replica of a WhatsApp channel interface, showcasing a politician's updates with a multi-level tabbed navigation system for organizing content.",
+  "requestFramePermissions": []
+}
