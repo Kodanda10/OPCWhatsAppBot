@@ -1,3 +1,6 @@
+
+// FIX: Removed self-import of PostStats which was causing a conflict.
+
 export interface PostStats {
     comments: number;
     retweets: number;

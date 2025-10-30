@@ -14,8 +14,9 @@ import Footer from './components/Footer';
 import PostCard from './components/PostCard';
 import CMSPanel from './components/cms/CMSPanel';
 
-// Initial Data moved from constants.ts to App state
-const profileImageUrl = 'https://scontent-iad3-1.xx.fbcdn.net/v/t39.30808-6/447738221_1344852430337766_2245283595204128963_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=833d8c&_nc_ohc=4-F-3nB1r-MQ7kNvgH0sQ51&_nc_ht=scontent-iad3-1.xx&_nc_gid=f2hkXZyXM4fBFnalx0qVsA&oh=00_AfDndv7e8g93y7s7K-5o9j6n2l9l_s5W_6g4V5z9T9H_7w&oe=667950B0';
+// Stable Placeholder Images
+const profileImageUrl = 'https://placehold.co/100x100/EFEFEF/333333?text=DP';
+const bannerImageUrl = 'https://placehold.co/600x200/CCCCCC/FFFFFF?text=Channel+Banner';
 
 const initialVittPosts: PostType[] = [
     {
@@ -24,7 +25,7 @@ const initialVittPosts: PostType[] = [
         handle: '@OPChoudhary',
         timestamp: '2h',
         content: "आज विधानसभा में छत्तीसगढ़ का वित्तीय वर्ष 2024-25 का बजट पेश किया। यह बजट 'विकसित भारत' के संकल्प में 'विकसित छत्तीसगढ़' के योगदान को सुनिश्चित करने वाला बजट है।",
-        imageUrls: ['https://picsum.photos/seed/budget1/600/400', 'https://picsum.photos/seed/budget2/600/400'],
+        imageUrls: ['https://placehold.co/600x400/EDEDED/333?text=Image+1', 'https://placehold.co/600x400/FAFAFA/333?text=Image+2'],
         profileUrl: profileImageUrl,
         stats: { comments: 15, retweets: 42, likes: 210, views: '18K' },
     },
@@ -34,19 +35,35 @@ const initialVittPosts: PostType[] = [
         handle: '@OPChoudhary',
         timestamp: '1d',
         content: "हमारी सरकार 'ज्ञान' (गरीब, युवा, अन्नदाता, नारी) पर केंद्रित है। यह बजट राज्य के किसानों को सशक्त बनाएगा और युवाओं के लिए नए अवसर पैदा करेगा। #CGBudget2024",
-        imageUrls: ['https://picsum.photos/seed/farmer/600/400'],
+        imageUrls: ['https://placehold.co/600x400/F5F5F5/333?text=Image+3'],
         profileUrl: profileImageUrl,
         stats: { comments: 22, retweets: 58, likes: 305, views: '25K' },
     },
 ];
 
 const initialBannerData: BannerType = {
-    bannerUrl: "https://scontent-bom2-2.xx.fbcdn.net/v/t39.30808-6/476121108_1161417528681258_1226577152173553956_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=86c6b0&_nc_ohc=kM2lzapnYQcQ7kNvwH9wACa&_nc_oc=Adm7iCEoJm650y2Zu134aUrN7tzfzFFfbnxuBPmEwQox1wUgPqbTqSnJZrjxVpx4ParTdd68hj56huV4nfKOHP7Z&_nc_zt=23&_nc_ht=scontent-bom2-2.xx&nc_gid=f2hkXZyXM4fBFnalx0qVsA&oh=00_AfenZ_-r7m7UC9HrXdPZCe2uZeCZAXYyfwpnGid39zPznA&oe=69097E2D",
+    bannerUrl: bannerImageUrl,
     profileUrl: profileImageUrl,
     title: "श्री ओपी चौधरी के काम",
     followers: "1.2M followers"
 };
 
+// All Tabs data structure
+interface AllTabs {
+    main: TabType[];
+    rajya: TabType[];
+    raigarh: TabType[];
+    reforms: TabType[];
+    yojanaye: TabType[];
+}
+
+const initialTabsData: AllTabs = {
+    main: MAIN_TABS,
+    rajya: RAJYA_SUB_TABS,
+    raigarh: RAIGARH_SUB_TABS,
+    reforms: REFORMS_SUB_TABS,
+    yojanaye: YOJANAYE_NESTED_TABS,
+}
 
 const SubTabs: React.FC<{
     tabs: TabType[];
@@ -106,7 +123,8 @@ const App: React.FC = () => {
 
     // Content State
     const [bannerData, setBannerData] = useState<BannerType>(initialBannerData);
-    const [vittPosts, setVittPosts] = useState<PostType[]>(initialVittPosts);
+    const [postsData, setPostsData] = useState<Record<string, PostType[]>>({ vitt: initialVittPosts });
+    const [tabsData, setTabsData] = useState<AllTabs>(initialTabsData);
     
     // UI State
     const [activeMainTab, setActiveMainTab] = useState<string>('rajya');
@@ -132,43 +150,76 @@ const App: React.FC = () => {
         setBannerData(newData);
     };
 
+    const addPost = (subTabId: string, newPostContent: Omit<PostType, 'id' | 'timestamp' | 'profileUrl' | 'stats' | 'author' | 'handle'>) => {
+        const newPost: PostType = {
+            id: Date.now(),
+            author: 'श्री ओपी चौधरी',
+            handle: '@OPChoudhary',
+            timestamp: 'Just now',
+            profileUrl: bannerData.profileUrl,
+            stats: { comments: 0, retweets: 0, likes: 0, views: '0' },
+            ...newPostContent,
+        };
+
+        setPostsData(prev => ({
+            ...prev,
+            [subTabId]: [newPost, ...(prev[subTabId] || [])]
+        }));
+    };
+
+    const addSubTab = (mainTabId: keyof AllTabs, newTab: TabType) => {
+        if (mainTabId === 'main' || mainTabId === 'yojanaye') return; // For simplicity, don't add to main or nested tabs for now
+        
+        setTabsData(prev => ({
+            ...prev,
+            [mainTabId]: [...prev[mainTabId], newTab]
+        }));
+    };
+
     const renderMainContent = () => {
+        const activeSubTabId = activeSubTabs[activeMainTab];
+        const postsForSubTab = postsData[activeSubTabId] || [];
+
         switch (activeMainTab) {
             case 'rajya':
                 return (
                     <div>
-                        <SubTabs tabs={RAJYA_SUB_TABS} activeTab={activeSubTabs.rajya} onTabClick={(id) => handleSubTabClick('rajya', id)} />
-                        {activeSubTabs.rajya === 'vitt' && (
-                            <div className="space-y-4">
-                                {vittPosts.map((post: PostType) => <PostCard key={post.id} post={post} />)}
-                            </div>
-                        )}
-                        {activeSubTabs.rajya === 'yojanaye' && (
+                        <SubTabs tabs={tabsData.rajya} activeTab={activeSubTabId} onTabClick={(id) => handleSubTabClick('rajya', id)} />
+                        {activeSubTabId === 'yojanaye' ? (
                             <div>
-                                <NestedSubTabs tabs={YOJANAYE_NESTED_TABS} activeTab={activeNestedTabs.yojanaye} onTabClick={(id) => handleNestedTabClick('yojanaye', id)} />
+                                <NestedSubTabs tabs={tabsData.yojanaye} activeTab={activeNestedTabs.yojanaye} onTabClick={(id) => handleNestedTabClick('yojanaye', id)} />
                                 {activeNestedTabs.yojanaye === 'pmay' && <InfoCard title="प्रधानमंत्री आवास योजना-ग्रामीण">इस योजना के तहत ग्रामीण क्षेत्रों में पक्के मकान बनाने के लिए वित्तीय सहायता प्रदान की जाती है।</InfoCard>}
                                 {activeNestedTabs.yojanaye === 'mahatari' && <InfoCard title="महतारी वंदन योजना">इस योजना के तहत राज्य की पात्र विवाहित महिलाओं को वित्तीय सहायता प्रदान की जाती है।</InfoCard>}
                             </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {postsForSubTab.length > 0 
+                                    ? postsForSubTab.map((post: PostType) => <PostCard key={post.id} post={post} />)
+                                    : <InfoCard title={tabsData.rajya.find(t=>t.id === activeSubTabId)?.label || 'Info'}>No posts yet for this section.</InfoCard>}
+                            </div>
                         )}
-                        {activeSubTabs.rajya === 'vyapar' && <InfoCard title="व्यापार कर / वाणिज्य कर">व्यापार और वाणिज्य कर सुधारों और नीतियों पर नवीनतम जानकारी।</InfoCard>}
-                        {activeSubTabs.rajya === 'awas' && <InfoCard title="आवास और पर्यावरण योजना">किफायती आवास और पर्यावरणीय स्थिरता के लिए पहल का विवरण।</InfoCard>}
-                        {activeSubTabs.rajya === 'arth' && <InfoCard title="अर्थशास्त्र एवं सांख्यिकी">राज्य के लिए आर्थिक योजना और सांख्यिकीय विश्लेषण पर अपडेट।</InfoCard>}
                     </div>
                 );
             case 'raigarh':
-                return (
+                 return (
                     <div>
-                        <SubTabs tabs={RAIGARH_SUB_TABS} activeTab={activeSubTabs.raigarh} onTabClick={(id) => handleSubTabClick('raigarh', id)} />
-                        {activeSubTabs.raigarh === 'vikas' && <InfoCard title="विकास कार्य">रायगढ़ में चल रहे और पूरे हो चुके विकास कार्यों का विवरण।</InfoCard>}
-                        {activeSubTabs.raigarh === 'bhent' && <InfoCard title="भेंट/समारोह">सार्वजनिक बैठकों, कार्यक्रमों और समारोहों की झलकियाँ।</InfoCard>}
+                        <SubTabs tabs={tabsData.raigarh} activeTab={activeSubTabId} onTabClick={(id) => handleSubTabClick('raigarh', id)} />
+                        <div className="space-y-4">
+                            {postsForSubTab.length > 0 
+                                ? postsForSubTab.map((post: PostType) => <PostCard key={post.id} post={post} />)
+                                : <InfoCard title={tabsData.raigarh.find(t=>t.id === activeSubTabId)?.label || 'Info'}>No posts yet for this section.</InfoCard>}
+                        </div>
                     </div>
                 );
             case 'reforms':
                  return (
                     <div>
-                        <SubTabs tabs={REFORMS_SUB_TABS} activeTab={activeSubTabs.reforms} onTabClick={(id) => handleSubTabClick('reforms', id)} />
-                        {activeSubTabs.reforms === 'scr' && <InfoCard title="SCR (स्टेट कैपिटल रीजन)">राज्य राजधानी क्षेत्र के विकास से संबंधित सुधारों की जानकारी।</InfoCard>}
-                        {activeSubTabs.reforms === 'registry' && <InfoCard title="रजिस्ट्री - स्मार्ट पंजीयन">पंजीकरण प्रक्रियाओं को सरल बनाने के लिए स्मार्ट रजिस्ट्री पहल पर अपडेट।</InfoCard>}
+                        <SubTabs tabs={tabsData.reforms} activeTab={activeSubTabId} onTabClick={(id) => handleSubTabClick('reforms', id)} />
+                        <div className="space-y-4">
+                             {postsForSubTab.length > 0 
+                                ? postsForSubTab.map((post: PostType) => <PostCard key={post.id} post={post} />)
+                                : <InfoCard title={tabsData.reforms.find(t=>t.id === activeSubTabId)?.label || 'Info'}>No posts yet for this section.</InfoCard>}
+                        </div>
                     </div>
                 );
             case 'vision':
@@ -179,7 +230,14 @@ const App: React.FC = () => {
     };
 
     if (isAdminMode) {
-        return <CMSPanel onExitAdminMode={() => setIsAdminMode(false)} bannerData={bannerData} updateBannerData={updateBannerData} />;
+        return <CMSPanel 
+            onExitAdminMode={() => setIsAdminMode(false)} 
+            bannerData={bannerData} 
+            updateBannerData={updateBannerData}
+            tabsData={tabsData}
+            addPost={addPost}
+            addSubTab={addSubTab}
+        />;
     }
 
     return (
@@ -189,15 +247,15 @@ const App: React.FC = () => {
         }}>
             <Header onAdminClick={() => setIsAdminMode(true)} />
             <div className="flex-grow flex flex-col overflow-hidden">
+                <Banner bannerUrl={bannerData.bannerUrl} />
                 <ChannelInfo
                     profileUrl={bannerData.profileUrl}
                     title={bannerData.title}
                     followers={bannerData.followers}
                 />
-                <Banner bannerUrl={bannerData.bannerUrl} />
                 <nav className="bg-[#075E54] text-gray-300 font-medium flex-shrink-0">
                     <div className="flex justify-around">
-                        {MAIN_TABS.map(tab => (
+                        {tabsData.main.map(tab => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveMainTab(tab.id)}
