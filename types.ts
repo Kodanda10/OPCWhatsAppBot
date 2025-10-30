@@ -1,4 +1,3 @@
-
 export interface PostStats {
     comments: number;
     retweets: number;
@@ -12,7 +11,8 @@ export interface PostType {
     handle: string;
     timestamp: string;
     content: string;
-    imageUrl: string;
+    imageUrls?: string[];
+    videoUrl?: string;
     profileUrl: string;
     stats: PostStats;
 }
@@ -20,4 +20,11 @@ export interface PostType {
 export interface TabType {
     id: string;
     label: string;
+}
+
+export interface BannerType {
+    bannerUrl: string;
+    profileUrl: string;
+    title: string;
+    followers: string;
 }

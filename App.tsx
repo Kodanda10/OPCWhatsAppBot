@@ -1,18 +1,52 @@
-
 import React, { useState } from 'react';
-import { PostType, TabType } from './types';
+import { PostType, TabType, BannerType } from './types';
 import { 
     MAIN_TABS, 
     RAJYA_SUB_TABS, 
     RAIGARH_SUB_TABS,
     REFORMS_SUB_TABS,
     YOJANAYE_NESTED_TABS,
-    VITT_POSTS
 } from './constants';
 import Header from './components/Header';
 import Banner from './components/Banner';
+import ChannelInfo from './components/ChannelInfo';
 import Footer from './components/Footer';
 import PostCard from './components/PostCard';
+import CMSPanel from './components/cms/CMSPanel';
+
+// Initial Data moved from constants.ts to App state
+const profileImageUrl = 'https://scontent-iad3-1.xx.fbcdn.net/v/t39.30808-6/447738221_1344852430337766_2245283595204128963_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=833d8c&_nc_ohc=4-F-3nB1r-MQ7kNvgH0sQ51&_nc_ht=scontent-iad3-1.xx&_nc_gid=f2hkXZyXM4fBFnalx0qVsA&oh=00_AfDndv7e8g93y7s7K-5o9j6n2l9l_s5W_6g4V5z9T9H_7w&oe=667950B0';
+
+const initialVittPosts: PostType[] = [
+    {
+        id: 1,
+        author: 'श्री ओपी चौधरी',
+        handle: '@OPChoudhary',
+        timestamp: '2h',
+        content: "आज विधानसभा में छत्तीसगढ़ का वित्तीय वर्ष 2024-25 का बजट पेश किया। यह बजट 'विकसित भारत' के संकल्प में 'विकसित छत्तीसगढ़' के योगदान को सुनिश्चित करने वाला बजट है।",
+        imageUrls: ['https://picsum.photos/seed/budget1/600/400', 'https://picsum.photos/seed/budget2/600/400'],
+        profileUrl: profileImageUrl,
+        stats: { comments: 15, retweets: 42, likes: 210, views: '18K' },
+    },
+    {
+        id: 2,
+        author: 'श्री ओपी चौधरी',
+        handle: '@OPChoudhary',
+        timestamp: '1d',
+        content: "हमारी सरकार 'ज्ञान' (गरीब, युवा, अन्नदाता, नारी) पर केंद्रित है। यह बजट राज्य के किसानों को सशक्त बनाएगा और युवाओं के लिए नए अवसर पैदा करेगा। #CGBudget2024",
+        imageUrls: ['https://picsum.photos/seed/farmer/600/400'],
+        profileUrl: profileImageUrl,
+        stats: { comments: 22, retweets: 58, likes: 305, views: '25K' },
+    },
+];
+
+const initialBannerData: BannerType = {
+    bannerUrl: "https://scontent-bom2-2.xx.fbcdn.net/v/t39.30808-6/476121108_1161417528681258_1226577152173553956_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=86c6b0&_nc_ohc=kM2lzapnYQcQ7kNvwH9wACa&_nc_oc=Adm7iCEoJm650y2Zu134aUrN7tzfzFFfbnxuBPmEwQox1wUgPqbTqSnJZrjxVpx4ParTdd68hj56huV4nfKOHP7Z&_nc_zt=23&_nc_ht=scontent-bom2-2.xx&nc_gid=f2hkXZyXM4fBFnalx0qVsA&oh=00_AfenZ_-r7m7UC9HrXdPZCe2uZeCZAXYyfwpnGid39zPznA&oe=69097E2D",
+    profileUrl: profileImageUrl,
+    title: "श्री ओपी चौधरी के काम",
+    followers: "1.2M followers"
+};
+
 
 const SubTabs: React.FC<{
     tabs: TabType[];
@@ -67,6 +101,14 @@ const InfoCard: React.FC<{ title: string; children: React.ReactNode }> = ({ titl
 
 
 const App: React.FC = () => {
+    // CMS State
+    const [isAdminMode, setIsAdminMode] = useState(false);
+
+    // Content State
+    const [bannerData, setBannerData] = useState<BannerType>(initialBannerData);
+    const [vittPosts, setVittPosts] = useState<PostType[]>(initialVittPosts);
+    
+    // UI State
     const [activeMainTab, setActiveMainTab] = useState<string>('rajya');
     const [activeSubTabs, setActiveSubTabs] = useState<Record<string, string>>({
         rajya: 'vitt',
@@ -84,6 +126,11 @@ const App: React.FC = () => {
     const handleNestedTabClick = (subTab: string, nestedTab: string) => {
         setActiveNestedTabs(prev => ({...prev, [subTab]: nestedTab}));
     }
+    
+    // CMS Handlers
+    const updateBannerData = (newData: BannerType) => {
+        setBannerData(newData);
+    };
 
     const renderMainContent = () => {
         switch (activeMainTab) {
@@ -93,7 +140,7 @@ const App: React.FC = () => {
                         <SubTabs tabs={RAJYA_SUB_TABS} activeTab={activeSubTabs.rajya} onTabClick={(id) => handleSubTabClick('rajya', id)} />
                         {activeSubTabs.rajya === 'vitt' && (
                             <div className="space-y-4">
-                                {VITT_POSTS.map((post: PostType) => <PostCard key={post.id} post={post} />)}
+                                {vittPosts.map((post: PostType) => <PostCard key={post.id} post={post} />)}
                             </div>
                         )}
                         {activeSubTabs.rajya === 'yojanaye' && (
@@ -131,14 +178,23 @@ const App: React.FC = () => {
         }
     };
 
+    if (isAdminMode) {
+        return <CMSPanel onExitAdminMode={() => setIsAdminMode(false)} bannerData={bannerData} updateBannerData={updateBannerData} />;
+    }
+
     return (
-        <div className="flex flex-col h-screen max-w-lg mx-auto bg-white shadow-lg" style={{
+        <div className="flex flex-col h-screen max-w-lg mx-auto bg-white shadow-lg relative" style={{
             backgroundImage: "url('https://i.pinimg.com/736x/8c/98/99/8c98994518b575bfd8c949e91d20548b.jpg')",
             backgroundRepeat: 'repeat',
         }}>
-            <Header />
+            <Header onAdminClick={() => setIsAdminMode(true)} />
             <div className="flex-grow flex flex-col overflow-hidden">
-                <Banner />
+                <ChannelInfo
+                    profileUrl={bannerData.profileUrl}
+                    title={bannerData.title}
+                    followers={bannerData.followers}
+                />
+                <Banner bannerUrl={bannerData.bannerUrl} />
                 <nav className="bg-[#075E54] text-gray-300 font-medium flex-shrink-0">
                     <div className="flex justify-around">
                         {MAIN_TABS.map(tab => (
