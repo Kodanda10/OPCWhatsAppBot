@@ -3,37 +3,40 @@ import CMSSidebar from './CMSSidebar';
 import CMSGeneralSettings from './CMSGeneralSettings';
 import CMSManageTabs from './CMSManageTabs';
 import CMSManagePosts from './CMSManagePosts';
-import { BannerType, TabType, PostType } from '../../types';
-
-interface AllTabs {
-    main: TabType[];
-    rajya: TabType[];
-    raigarh: TabType[];
-    reforms: TabType[];
-    yojanaye: TabType[];
-}
+import { BannerType, TabNode, PostType } from '../../types';
 
 interface CMSPanelProps {
     onExitAdminMode: () => void;
     bannerData: BannerType;
     updateBannerData: (newData: BannerType) => void;
-    tabsData: AllTabs;
-    addPost: (subTabId: string, newPostContent: Omit<PostType, 'id' | 'timestamp' | 'profileUrl' | 'stats' | 'author' | 'handle'>) => void;
-    addSubTab: (mainTabId: keyof AllTabs, newTab: TabType) => void;
+    tabsData: TabNode[];
+    postsData: PostType[];
+    addPost: (tabId: string, newPostContent: Omit<PostType, 'id' | 'timestamp' | 'profileUrl' | 'stats' | 'author' | 'handle' | 'isEnabled' | 'tabId' | 'createdAt'>) => void;
+    addTab: (parentId: string | null, newTab: Omit<TabNode, 'children'>) => void;
+    togglePostStatus: (postId: number) => void;
 }
 
 const CMSPanel: React.FC<CMSPanelProps> = (props) => {
-    const { onExitAdminMode, bannerData, updateBannerData, tabsData, addPost, addSubTab } = props;
-    const [activeView, setActiveView] = useState('general');
+    const { 
+        onExitAdminMode, 
+        bannerData, 
+        updateBannerData, 
+        tabsData, 
+        postsData,
+        addPost, 
+        addTab,
+        togglePostStatus,
+    } = props;
+    const [activeView, setActiveView] = useState('posts'); // Default to posts view
 
     const renderActiveView = () => {
         switch (activeView) {
             case 'general':
                 return <CMSGeneralSettings bannerData={bannerData} updateBannerData={updateBannerData} />;
             case 'tabs':
-                return <CMSManageTabs tabsData={tabsData} addSubTab={addSubTab} />;
+                return <CMSManageTabs tabsData={tabsData} addTab={addTab} />;
             case 'posts':
-                return <CMSManagePosts tabsData={tabsData} addPost={addPost} />;
+                return <CMSManagePosts tabsData={tabsData} addPost={addPost} postsData={postsData} togglePostStatus={togglePostStatus} />;
             default:
                 return <CMSGeneralSettings bannerData={bannerData} updateBannerData={updateBannerData} />;
         }

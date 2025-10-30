@@ -29,7 +29,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                 <img src={post.profileUrl} alt="Profile" className="w-12 h-12 rounded-full mr-3 object-cover" />
                 <div>
                     <span className="font-bold text-gray-800">{post.author}</span>
-                    <span className="text-sm text-gray-500 block">{post.handle} • {post.timestamp}</span>
+                    <span className="text-sm text-gray-500 block">{post.handle} • {post.timestamp} ({post.createdAt})</span>
                 </div>
             </div>
             <div className="px-3 pb-3">

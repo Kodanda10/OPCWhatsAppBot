@@ -1,5 +1,4 @@
-
-// FIX: Removed self-import of PostStats which was causing a conflict.
+// types.ts
 
 export interface PostStats {
     comments: number;
@@ -13,17 +12,23 @@ export interface PostType {
     author: string;
     handle: string;
     timestamp: string;
+    createdAt: string; // Added for timestamping
     content: string;
     imageUrls?: string[];
     videoUrl?: string;
     profileUrl: string;
     stats: PostStats;
+    isEnabled: boolean; // Controls visibility on the timeline
+    tabId: string; // To know which tab it belongs to (renamed from subTabId)
 }
 
-export interface TabType {
+// Replaces the flat TabType with a recursive structure for infinite nesting
+export interface TabNode {
     id: string;
     label: string;
+    children: TabNode[];
 }
+
 
 export interface BannerType {
     bannerUrl: string;
