@@ -41,6 +41,23 @@ const initialTabsData: TabNode[] = [
     { id: 'vision', label: 'विज़न', children: [] },
 ];
 
+const initialPostsData: PostType[] = [
+    {
+        id: 1,
+        author: 'श्री ओपी चौधरी',
+        handle: '@OPChoudhary',
+        timestamp: '2h',
+        createdAt: new Date(Date.now() - 7200000).toLocaleString(),
+        content: 'आज रायपुर में आयोजित ‘विकसित भारत @ 2047’ कार्यक्रम में शामिल हुआ। प्रधानमंत्री श्री नरेंद्र मोदी जी के नेतृत्व में भारत तेजी से विकास की ओर अग्रसर है। इस कार्यक्रम में युवाओं के साथ विकसित भारत के विजन पर चर्चा की।',
+        imageUrls: ['https://placehold.co/600x400/DDEEFF/333333?text=Event+Image+1'],
+        profileUrl: profileImageUrl,
+        stats: { comments: 12, retweets: 45, likes: 150, views: '10.2K' },
+        isEnabled: true,
+        tabId: 'bhent',
+    },
+];
+
+
 // Gets all leaf node IDs from a given starting node
 const getAllLeafTabIds = (node: TabNode): string[] => {
     if (!node.children || node.children.length === 0) {
@@ -129,19 +146,40 @@ const App: React.FC = () => {
     // Effect to load all data from IndexedDB on initial mount
     useEffect(() => {
         async function loadDataFromDB() {
-            const [banner, posts, tabs, adminMode, path] = await Promise.all([
-                get<BannerType>('app-bannerData'),
-                get<PostType[]>('app-postsData'),
-                get<TabNode[]>('app-tabsData'),
-                get<boolean>('isAdminMode'),
-                get<string[]>('app-activeTabPath'),
-            ]);
+            // Check for a flag to see if DB has been initialized
+            const isInitialized = await get<boolean>('dbInitialized');
 
-            if (banner) setBannerData(banner);
-            if (posts) setPostsData(posts);
-            if (tabs) setTabsData(tabs);
-            if (adminMode) setIsAdminMode(adminMode);
-            if (path) setActiveTabPath(path);
+            if (!isInitialized) {
+                // First time load or DB was cleared, perform a "factory reset"
+                await Promise.all([
+                    set('app-bannerData', initialBannerData),
+                    set('app-postsData', initialPostsData),
+                    set('app-tabsData', initialTabsData),
+                    set('isAdminMode', false),
+                    set('app-activeTabPath', ['rajya']),
+                    set('dbInitialized', true) // Set the flag
+                ]);
+                setBannerData(initialBannerData);
+                setPostsData(initialPostsData);
+                setTabsData(initialTabsData);
+                setIsAdminMode(false);
+                setActiveTabPath(['rajya']);
+            } else {
+                // Load existing data
+                const [banner, posts, tabs, adminMode, path] = await Promise.all([
+                    get<BannerType>('app-bannerData'),
+                    get<PostType[]>('app-postsData'),
+                    get<TabNode[]>('app-tabsData'),
+                    get<boolean>('isAdminMode'),
+                    get<string[]>('app-activeTabPath'),
+                ]);
+
+                setBannerData(banner || initialBannerData);
+                setPostsData(posts || []);
+                setTabsData(tabs || initialTabsData);
+                setIsAdminMode(adminMode || false);
+                setActiveTabPath(path || ['rajya']);
+            }
             
             setIsLoading(false);
         }
@@ -291,10 +329,12 @@ const App: React.FC = () => {
                 .filter(p => leafIds.includes(p.tabId) && p.isEnabled)
                 .sort((a, b) => b.id - a.id);
         }
+        
+        const headerExclusionList = ['reforms', 'vision', 'raigarh', 'vitt'];
 
         return (
             <div className="space-y-4">
-                 {nodeForPosts && !['reforms', 'vision'].includes(activeTabPath[0]) && (
+                 {nodeForPosts && !headerExclusionList.includes(nodeForPosts.id) && (
                     <div className="mb-2 p-3 bg-white/80 dark:bg-gray-800/80 rounded-lg shadow-sm backdrop-blur-sm border-l-4 border-green-500">
                         <h2 className="font-bold text-gray-800 dark:text-gray-200">
                             Viewing posts in: <span className="text-green-700 dark:text-green-400">{nodeForPosts.label}</span>
