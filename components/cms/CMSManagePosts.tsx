@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { TabNode, PostType } from '../../types';
+import { uploadFile } from '../../firebase';
 
 // Reusable Uploader Component for this file
 const FileUploader: React.FC<{
@@ -28,10 +29,11 @@ const FileUploader: React.FC<{
 );
 
 
-const Toast: React.FC<{ message: string; show: boolean; }> = ({ message, show }) => {
+const Toast: React.FC<{ message: string; show: boolean; type: 'success' | 'error' }> = ({ message, show, type }) => {
     if (!show) return null;
+    const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
     return (
-        <div className={`fixed top-5 right-5 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg transition-transform transform ${show ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className={`fixed top-5 right-5 ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg transition-transform transform ${show ? 'translate-x-0' : 'translate-x-full'}`}>
             {message}
         </div>
     );
@@ -75,12 +77,11 @@ const PostList: React.FC<{
     };
 
     return (
-         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md h-full">
-            <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-4 border-b dark:border-gray-700 pb-2">Existing Posts</h3>
+        <>
             {posts.length === 0 ? (
                 <p className="text-gray-500 dark:text-gray-400 italic mt-4">No posts have been created yet.</p>
             ) : (
-                <ul className="space-y-4 max-h-[calc(100vh-12rem)] overflow-y-auto pr-2">
+                <ul className="space-y-4">
                     {posts.map(post => (
                         <li key={post.id} className="p-3 border dark:border-gray-700 rounded-md flex justify-between items-center bg-gray-50 dark:bg-gray-900/50">
                             <div>
@@ -96,7 +97,7 @@ const PostList: React.FC<{
                     ))}
                 </ul>
             )}
-        </div>
+        </>
     );
 };
 
@@ -135,48 +136,78 @@ const CMSManagePosts: React.FC<CMSManagePostsProps> = ({ tabsData, postsData, ad
     const [imageUrls, setImageUrls] = useState<string[]>([]);
     const [videoUrl, setVideoUrl] = useState('');
     const [selectedTab, setSelectedTab] = useState('');
-    const [showToast, setShowToast] = useState(false);
+    const [toast, setToast] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({
+        show: false,
+        message: '',
+        type: 'success',
+    });
     const [isLoading, setIsLoading] = useState(false);
+    const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
 
-    const allPosts = useMemo(() => [...postsData].sort((a, b) => b.id - a.id), [postsData]);
+    const allPosts = useMemo(() => {
+        return [...postsData].sort((a, b) => {
+            if (sortOrder === 'oldest') {
+                return a.id - b.id;
+            }
+            return b.id - a.id; // Default to newest
+        });
+    }, [postsData, sortOrder]);
+
     const tabOptions = useMemo(() => renderTabOptions(tabsData), [tabsData]);
     
     useEffect(() => {
         if (!selectedTab && tabOptions.length > 0) {
-            // FIX: Cast opt.props to any to resolve incorrect type inference.
             const firstOption = tabOptions.find(opt => (opt.props as any).value);
             if (firstOption) {
-                // FIX: Cast firstOption.props to any to resolve incorrect type inference.
                 setSelectedTab((firstOption.props as any).value);
             }
         }
     }, [tabOptions, selectedTab]);
 
-    const showNotification = () => {
-        setShowToast(true);
-        setTimeout(() => setShowToast(false), 3000);
+    const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
+        setToast({ show: true, message, type });
+        setTimeout(() => setToast(p => ({ ...p, show: false })), 4000);
     };
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (!files) return;
         setIsLoading(true);
-        const newImages: string[] = [];
-        for (let i = 0; i < files.length && (imageUrls.length + newImages.length) < 10; i++) {
-            const base64 = await readFileAsBase64(files[i]);
-            newImages.push(base64);
+        const uploadPromises: Promise<string>[] = [];
+        for (let i = 0; i < files.length && (imageUrls.length + uploadPromises.length) < 10; i++) {
+            const file = files[i];
+            const promise = readFileAsBase64(file).then(base64 => {
+                const filePath = `posts/images/${Date.now()}-${file.name}`;
+                return uploadFile(base64, filePath);
+            });
+            uploadPromises.push(promise);
         }
-        setImageUrls(prev => [...prev, ...newImages]);
-        setIsLoading(false);
+        try {
+            const newUrls = await Promise.all(uploadPromises);
+            setImageUrls(prev => [...prev, ...newUrls]);
+        } catch (error) {
+            console.error("Failed to upload images:", error);
+            showNotification("Image upload failed. Please check Storage security rules.", 'error');
+        } finally {
+            setIsLoading(false);
+        }
     };
     
      const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
             setIsLoading(true);
-            const base64 = await readFileAsBase64(file);
-            setVideoUrl(base64);
-            setIsLoading(false);
+            try {
+                const base64 = await readFileAsBase64(file);
+                const filePath = `posts/videos/${Date.now()}-${file.name}`;
+                const downloadURL = await uploadFile(base64, filePath);
+                setVideoUrl(downloadURL);
+            } catch (error) {
+                console.error("Failed to upload video:", error);
+                showNotification("Video upload failed. Please check Storage security rules.", 'error');
+            } finally {
+                setIsLoading(false);
+            }
         }
     };
 
@@ -191,14 +222,33 @@ const CMSManagePosts: React.FC<CMSManagePostsProps> = ({ tabsData, postsData, ad
         setContent('');
         setImageUrls([]);
         setVideoUrl('');
-        showNotification();
+        showNotification("Post published successfully!");
     };
 
     return (
         <>
-            <Toast message="Post published successfully!" show={showToast} />
+            <Toast message={toast.message} show={toast.show} type={toast.type} />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
-                <PostList posts={allPosts} tabsData={tabsData} togglePostStatus={togglePostStatus} />
+                 <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md h-full flex flex-col">
+                    <div className="flex justify-between items-center mb-4 border-b dark:border-gray-700 pb-2 flex-shrink-0">
+                        <h3 className="text-xl font-bold text-gray-800 dark:text-white">Existing Posts</h3>
+                        <div>
+                            <label htmlFor="sort-posts" className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">Sort by:</label>
+                            <select
+                                id="sort-posts"
+                                value={sortOrder}
+                                onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
+                                className="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#075E54] focus:border-[#075E54] text-sm text-gray-900 dark:text-white"
+                            >
+                                <option value="newest">Newest First</option>
+                                <option value="oldest">Oldest First</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div className="overflow-y-auto flex-grow pr-2">
+                        <PostList posts={allPosts} tabsData={tabsData} togglePostStatus={togglePostStatus} />
+                    </div>
+                </div>
                 
                 <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
                      <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-4 border-b dark:border-gray-700 pb-2">Create New Post</h3>

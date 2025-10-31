@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { BannerType, PostType, TabNode } from '../../types';
-import { set } from '../../hooks/usePersistentState'; // Import the new set function
+import { uploadFile } from '../../firebase'; // Import the new Firebase upload function
 
-// Utility to read file as Base64
+// Utility to read file as Base64 for preview and upload
 const readFileAsBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -25,9 +25,10 @@ const Toast: React.FC<{ message: string; show: boolean; type: 'success' | 'error
 const FileUploader: React.FC<{
     label: string;
     currentUrl: string;
-    onFileSelect: (base64: string) => void;
+    onFileSelect: (url: string) => void;
+    onError: (message: string) => void;
     aspect: 'banner' | 'profile';
-}> = ({ label, currentUrl, onFileSelect, aspect }) => {
+}> = ({ label, currentUrl, onFileSelect, onError, aspect }) => {
     const [isLoading, setIsLoading] = useState(false);
     const inputId = `file-upload-${aspect}`;
     const isProfile = aspect === 'profile';
@@ -38,9 +39,13 @@ const FileUploader: React.FC<{
             setIsLoading(true);
             try {
                 const base64 = await readFileAsBase64(file);
-                onFileSelect(base64);
+                // The filename will be unique due to the timestamp
+                const filePath = `images/${aspect}-${Date.now()}-${file.name}`;
+                const downloadURL = await uploadFile(base64, filePath);
+                onFileSelect(downloadURL);
             } catch (error) {
-                console.error("Error reading file:", error);
+                console.error("Error uploading file:", error);
+                onError("File upload failed. Please check your Firebase Storage security rules and ensure the service is enabled.");
             } finally {
                 setIsLoading(false);
             }
@@ -109,7 +114,7 @@ const CMSGeneralSettings: React.FC<CMSGeneralSettingsProps> = ({
     
     const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
         setToast({ show: true, message, type });
-        setTimeout(() => setToast(p => ({ ...p, show: false })), 3000);
+        setTimeout(() => setToast(p => ({ ...p, show: false })), 4000);
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -156,16 +161,10 @@ const CMSGeneralSettings: React.FC<CMSGeneralSettingsProps> = ({
                 const importedData = JSON.parse(text);
 
                 if (importedData.bannerData && Array.isArray(importedData.postsData) && Array.isArray(importedData.tabsData)) {
-                    // Update React state
+                    // Update state and persist to Firebase
                     updateBannerData(importedData.bannerData);
                     updatePostsData(importedData.postsData);
                     updateTabsData(importedData.tabsData);
-
-                    // Persist to IndexedDB
-                    set('app-bannerData', importedData.bannerData);
-                    set('app-postsData', importedData.postsData);
-                    set('app-tabsData', importedData.tabsData);
-
                     showNotification('Data imported successfully!');
                 } else {
                     showNotification('Invalid backup file format.', 'error');
@@ -180,7 +179,6 @@ const CMSGeneralSettings: React.FC<CMSGeneralSettingsProps> = ({
         };
         reader.readAsText(file);
         
-        // Clear the input value to allow re-uploading the same file
         e.target.value = '';
     };
 
@@ -218,13 +216,15 @@ const CMSGeneralSettings: React.FC<CMSGeneralSettingsProps> = ({
                            <FileUploader 
                                 label="Banner Image"
                                 currentUrl={formData.bannerUrl}
-                                onFileSelect={(base64) => setFormData(p => ({ ...p, bannerUrl: base64 }))}
+                                onFileSelect={(url) => setFormData(p => ({ ...p, bannerUrl: url }))}
+                                onError={(msg) => showNotification(msg, 'error')}
                                 aspect="banner"
                            />
                            <FileUploader 
                                 label="Profile Image"
                                 currentUrl={formData.profileUrl}
-                                onFileSelect={(base64) => setFormData(p => ({ ...p, profileUrl: base64 }))}
+                                onFileSelect={(url) => setFormData(p => ({ ...p, profileUrl: url }))}
+                                onError={(msg) => showNotification(msg, 'error')}
                                 aspect="profile"
                            />
                         </div>
