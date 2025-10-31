@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { TabNode, PostType } from '../../types';
 import { uploadFile } from '../../firebase';
+import StoragePermissionsModal from '../StoragePermissionsModal'; // Import the new modal
 
 // Reusable Uploader Component for this file
 const FileUploader: React.FC<{
@@ -143,6 +144,7 @@ const CMSManagePosts: React.FC<CMSManagePostsProps> = ({ tabsData, postsData, ad
     });
     const [isLoading, setIsLoading] = useState(false);
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+    const [showStorageModal, setShowStorageModal] = useState(false);
 
     const allPosts = useMemo(() => {
         return [...postsData].sort((a, b) => {
@@ -185,9 +187,13 @@ const CMSManagePosts: React.FC<CMSManagePostsProps> = ({ tabsData, postsData, ad
         try {
             const newUrls = await Promise.all(uploadPromises);
             setImageUrls(prev => [...prev, ...newUrls]);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to upload images:", error);
-            showNotification("Image upload failed. Please check Storage security rules.", 'error');
+            if (error?.code === 'storage/unauthorized') {
+                setShowStorageModal(true);
+            } else {
+                showNotification("Image upload failed. Please try again.", 'error');
+            }
         } finally {
             setIsLoading(false);
         }
@@ -202,9 +208,13 @@ const CMSManagePosts: React.FC<CMSManagePostsProps> = ({ tabsData, postsData, ad
                 const filePath = `posts/videos/${Date.now()}-${file.name}`;
                 const downloadURL = await uploadFile(base64, filePath);
                 setVideoUrl(downloadURL);
-            } catch (error) {
+            } catch (error: any) {
                 console.error("Failed to upload video:", error);
-                showNotification("Video upload failed. Please check Storage security rules.", 'error');
+                if (error?.code === 'storage/unauthorized') {
+                    setShowStorageModal(true);
+                } else {
+                    showNotification("Video upload failed. Please try again.", 'error');
+                }
             } finally {
                 setIsLoading(false);
             }
@@ -227,6 +237,7 @@ const CMSManagePosts: React.FC<CMSManagePostsProps> = ({ tabsData, postsData, ad
 
     return (
         <>
+            {showStorageModal && <StoragePermissionsModal onClose={() => setShowStorageModal(false)} />}
             <Toast message={toast.message} show={toast.show} type={toast.type} />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
                  <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md h-full flex flex-col">

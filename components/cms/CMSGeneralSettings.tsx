@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BannerType, PostType, TabNode } from '../../types';
 import { uploadFile } from '../../firebase'; // Import the new Firebase upload function
+import StoragePermissionsModal from '../StoragePermissionsModal'; // Import the new modal
 
 // Utility to read file as Base64 for preview and upload
 const readFileAsBase64 = (file: File): Promise<string> => {
@@ -26,7 +27,7 @@ const FileUploader: React.FC<{
     label: string;
     currentUrl: string;
     onFileSelect: (url: string) => void;
-    onError: (message: string) => void;
+    onError: (error: any) => void; // Changed to accept the full error object
     aspect: 'banner' | 'profile';
 }> = ({ label, currentUrl, onFileSelect, onError, aspect }) => {
     const [isLoading, setIsLoading] = useState(false);
@@ -39,13 +40,12 @@ const FileUploader: React.FC<{
             setIsLoading(true);
             try {
                 const base64 = await readFileAsBase64(file);
-                // The filename will be unique due to the timestamp
                 const filePath = `images/${aspect}-${Date.now()}-${file.name}`;
                 const downloadURL = await uploadFile(base64, filePath);
                 onFileSelect(downloadURL);
-            } catch (error) {
+            } catch (error: any) {
                 console.error("Error uploading file:", error);
-                onError("File upload failed. Please check your Firebase Storage security rules and ensure the service is enabled.");
+                onError(error); // Pass the full error object back
             } finally {
                 setIsLoading(false);
             }
@@ -107,6 +107,7 @@ const CMSGeneralSettings: React.FC<CMSGeneralSettingsProps> = ({
         message: '',
         type: 'success',
     });
+    const [showStorageModal, setShowStorageModal] = useState(false);
 
     useEffect(() => {
         setFormData(bannerData);
@@ -115,6 +116,14 @@ const CMSGeneralSettings: React.FC<CMSGeneralSettingsProps> = ({
     const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
         setToast({ show: true, message, type });
         setTimeout(() => setToast(p => ({ ...p, show: false })), 4000);
+    };
+
+    const handleUploadError = (error: any) => {
+        if (error?.code === 'storage/unauthorized') {
+            setShowStorageModal(true);
+        } else {
+            showNotification("File upload failed. Please try again.", 'error');
+        }
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -184,6 +193,7 @@ const CMSGeneralSettings: React.FC<CMSGeneralSettingsProps> = ({
 
     return (
         <>
+            {showStorageModal && <StoragePermissionsModal onClose={() => setShowStorageModal(false)} />}
             <Toast message={toast.message} show={toast.show} type={toast.type} />
             <div className="p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md max-w-4xl mx-auto">
                 <h2 className="text-3xl font-bold mb-6 text-gray-800 dark:text-white border-b dark:border-gray-700 pb-4">General Settings</h2>
@@ -217,14 +227,14 @@ const CMSGeneralSettings: React.FC<CMSGeneralSettingsProps> = ({
                                 label="Banner Image"
                                 currentUrl={formData.bannerUrl}
                                 onFileSelect={(url) => setFormData(p => ({ ...p, bannerUrl: url }))}
-                                onError={(msg) => showNotification(msg, 'error')}
+                                onError={handleUploadError}
                                 aspect="banner"
                            />
                            <FileUploader 
                                 label="Profile Image"
                                 currentUrl={formData.profileUrl}
                                 onFileSelect={(url) => setFormData(p => ({ ...p, profileUrl: url }))}
-                                onError={(msg) => showNotification(msg, 'error')}
+                                onError={handleUploadError}
                                 aspect="profile"
                            />
                         </div>
