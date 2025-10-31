@@ -1,35 +1,10 @@
-import React, { useContext } from 'react';
-import { ThemeContext } from '../../context/ThemeContext';
-
+import React from 'react';
 
 interface CMSSidebarProps {
     activeView: string;
     setActiveView: (view: string) => void;
     onExitAdminMode: () => void;
 }
-
-const ThemeToggleButton: React.FC = () => {
-    const context = useContext(ThemeContext);
-    if (!context) {
-        throw new Error('ThemeToggleButton must be used within a ThemeProvider');
-    }
-    const { theme, toggleTheme } = context;
-
-    return (
-        <button 
-            onClick={toggleTheme} 
-            className="w-full flex items-center space-x-3 px-4 py-2 rounded-lg transition-colors hover:bg-white/10"
-            title="Toggle Theme" 
-            aria-label="Toggle Theme"
-        >
-             {theme === 'dark' 
-                ? <><i className="fas fa-sun w-5 text-center"></i><span>Light Mode</span></>
-                : <><i className="fas fa-moon w-5 text-center"></i><span>Dark Mode</span></>
-             }
-        </button>
-    );
-};
-
 
 const CMSSidebar: React.FC<CMSSidebarProps> = ({ activeView, setActiveView, onExitAdminMode }) => {
     const navItems = [
@@ -59,7 +34,6 @@ const CMSSidebar: React.FC<CMSSidebarProps> = ({ activeView, setActiveView, onEx
                 ))}
             </nav>
             <div className="p-4 border-t border-white/20 dark:border-gray-700 space-y-2">
-                <ThemeToggleButton />
                 <button
                     onClick={onExitAdminMode}
                     className="w-full flex items-center space-x-3 px-4 py-2 rounded-lg transition-colors hover:bg-white/10"

@@ -36,3 +36,9 @@ export interface BannerType {
     title: string;
     followers: string;
 }
+
+export interface ExportedData {
+    bannerData: BannerType;
+    postsData: PostType[];
+    tabsData: TabNode[];
+}

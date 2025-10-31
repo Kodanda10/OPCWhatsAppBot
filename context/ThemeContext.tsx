@@ -1,5 +1,6 @@
-import React, { createContext, ReactNode, useEffect } from 'react';
-import usePersistentState from '../hooks/usePersistentState';
+import React, { createContext, ReactNode, useEffect, useState } from 'react';
+// FIX: The 'usePersistentState' hook was removed. Importing 'get' and 'set' helpers instead.
+import { get, set } from '../hooks/usePersistentState';
 
 type Theme = 'light' | 'dark';
 
@@ -15,16 +16,37 @@ interface ThemeProviderProps {
 }
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-    const [theme, setTheme] = usePersistentState<Theme>('theme', 'light');
+    // FIX: Replaced usePersistentState with standard useState and useEffect to manage theme persistence.
+    const [theme, setTheme] = useState<Theme>('light');
 
+    // On initial load, try to get the theme from persistent storage.
+    useEffect(() => {
+        const loadTheme = async () => {
+            const savedTheme = await get<Theme>('theme');
+            if (savedTheme) {
+                setTheme(savedTheme);
+            }
+        };
+        loadTheme();
+    }, []);
+
+    // Whenever the theme changes, update the class on the root HTML element.
     useEffect(() => {
         const root = window.document.documentElement;
-        root.classList.remove('light', 'dark');
-        root.classList.add(theme);
+        if (theme === 'dark') {
+            root.classList.add('dark');
+        } else {
+            root.classList.remove('dark');
+        }
     }, [theme]);
 
     const toggleTheme = () => {
-        setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
+        setTheme(prevTheme => {
+            const newTheme = prevTheme === 'light' ? 'dark' : 'light';
+            // Persist the new theme to storage.
+            set('theme', newTheme);
+            return newTheme;
+        });
     };
 
     return (

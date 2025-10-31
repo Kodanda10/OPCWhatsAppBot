@@ -1,25 +1,52 @@
-import React, { useState, useEffect } from 'react';
+// This file now acts as a simple IndexedDB key-value store wrapper.
+import { openDB, IDBPDatabase } from 'idb';
 
-function usePersistentState<T>(key: string, initialState: T): [T, React.Dispatch<React.SetStateAction<T>>] {
-    const [state, setState] = useState<T>(() => {
-        try {
-            const storageValue = window.localStorage.getItem(key);
-            return storageValue ? JSON.parse(storageValue) : initialState;
-        } catch (error) {
-            console.error(`Error reading localStorage key “${key}”:`, error);
-            return initialState;
-        }
-    });
+const DB_NAME = 'whatsapp-channel-db';
+const STORE_NAME = 'app-data';
+const DB_VERSION = 1;
 
-    useEffect(() => {
-        try {
-            window.localStorage.setItem(key, JSON.stringify(state));
-        } catch (error) {
-            console.error(`Error setting localStorage key “${key}”:`, error);
-        }
-    }, [key, state]);
+let dbPromise: Promise<IDBPDatabase> | null = null;
 
-    return [state, setState];
+function getDbPromise(): Promise<IDBPDatabase> {
+    if (!dbPromise) {
+        dbPromise = openDB(DB_NAME, DB_VERSION, {
+            upgrade(db) {
+                if (!db.objectStoreNames.contains(STORE_NAME)) {
+                    db.createObjectStore(STORE_NAME);
+                }
+            },
+        });
+    }
+    return dbPromise;
 }
 
-export default usePersistentState;
+/**
+ * Gets a value from the IndexedDB store.
+ * @param key The key of the item to retrieve.
+ * @returns The stored value, or undefined if not found.
+ */
+export async function get<T>(key: string): Promise<T | undefined> {
+    try {
+        const db = await getDbPromise();
+        return await db.get(STORE_NAME, key);
+    } catch (error) {
+        console.error(`Failed to get data for key "${key}" from IndexedDB:`, error);
+        return undefined;
+    }
+}
+
+/**
+ * Sets a value in the IndexedDB store.
+ * @param key The key of the item to set.
+ * @param value The value to store.
+ */
+export async function set(key: string, value: any): Promise<void> {
+    try {
+        const db = await getDbPromise();
+        await db.put(STORE_NAME, value, key);
+    } catch (error) {
+        console.error(`Failed to set data for key "${key}" in IndexedDB:`, error);
+    }
+}
+
+// NOTE: The usePersistentState hook has been removed and replaced by these IndexedDB utilities.

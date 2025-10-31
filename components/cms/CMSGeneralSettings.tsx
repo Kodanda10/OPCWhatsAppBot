@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { BannerType } from '../../types';
+import { BannerType, PostType, TabNode } from '../../types';
+import { set } from '../../hooks/usePersistentState'; // Import the new set function
 
 // Utility to read file as Base64
 const readFileAsBase64 = (file: File): Promise<string> => {
@@ -81,21 +82,34 @@ const FileUploader: React.FC<{
 interface CMSGeneralSettingsProps {
     bannerData: BannerType;
     updateBannerData: (newData: BannerType) => void;
+    postsData: PostType[];
+    tabsData: TabNode[];
+    updatePostsData: (newData: PostType[]) => void;
+    updateTabsData: (newData: TabNode[]) => void;
 }
 
-const CMSGeneralSettings: React.FC<CMSGeneralSettingsProps> = ({ bannerData, updateBannerData }) => {
+const CMSGeneralSettings: React.FC<CMSGeneralSettingsProps> = ({ 
+    bannerData, 
+    updateBannerData,
+    postsData,
+    tabsData,
+    updatePostsData,
+    updateTabsData 
+}) => {
     const [formData, setFormData] = useState<BannerType>(bannerData);
-    const [showToast, setShowToast] = useState(false);
-    const [toastMessage, setToastMessage] = useState('');
+    const [toast, setToast] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({
+        show: false,
+        message: '',
+        type: 'success',
+    });
 
     useEffect(() => {
         setFormData(bannerData);
     }, [bannerData]);
     
-    const showNotification = (message: string) => {
-        setToastMessage(message);
-        setShowToast(true);
-        setTimeout(() => setShowToast(false), 3000);
+    const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
+        setToast({ show: true, message, type });
+        setTimeout(() => setToast(p => ({ ...p, show: false })), 3000);
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -103,10 +117,76 @@ const CMSGeneralSettings: React.FC<CMSGeneralSettingsProps> = ({ bannerData, upd
         updateBannerData(formData);
         showNotification('Settings saved successfully!');
     };
+    
+    const handleExport = () => {
+        try {
+            const exportedData = {
+                bannerData: bannerData,
+                postsData: postsData,
+                tabsData: tabsData,
+            };
+            const jsonString = JSON.stringify(exportedData, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `whatsapp-channel-backup-${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            showNotification('Data exported successfully!');
+        } catch (error) {
+            console.error('Export failed:', error);
+            showNotification('Could not export data.', 'error');
+        }
+    };
+
+    const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const text = event.target?.result;
+                if (typeof text !== 'string') {
+                    throw new Error("File could not be read as text.");
+                }
+                const importedData = JSON.parse(text);
+
+                if (importedData.bannerData && Array.isArray(importedData.postsData) && Array.isArray(importedData.tabsData)) {
+                    // Update React state
+                    updateBannerData(importedData.bannerData);
+                    updatePostsData(importedData.postsData);
+                    updateTabsData(importedData.tabsData);
+
+                    // Persist to IndexedDB
+                    set('app-bannerData', importedData.bannerData);
+                    set('app-postsData', importedData.postsData);
+                    set('app-tabsData', importedData.tabsData);
+
+                    showNotification('Data imported successfully!');
+                } else {
+                    showNotification('Invalid backup file format.', 'error');
+                }
+            } catch (error) {
+                console.error("Error importing data:", error);
+                showNotification('Failed to parse the backup file.', 'error');
+            }
+        };
+        reader.onerror = () => {
+             showNotification('Failed to read the file.', 'error');
+        };
+        reader.readAsText(file);
+        
+        // Clear the input value to allow re-uploading the same file
+        e.target.value = '';
+    };
 
     return (
         <>
-            <Toast message={toastMessage} show={showToast} type="success" />
+            <Toast message={toast.message} show={toast.show} type={toast.type} />
             <div className="p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md max-w-4xl mx-auto">
                 <h2 className="text-3xl font-bold mb-6 text-gray-800 dark:text-white border-b dark:border-gray-700 pb-4">General Settings</h2>
                 <form onSubmit={handleSubmit} className="space-y-10">
@@ -149,6 +229,27 @@ const CMSGeneralSettings: React.FC<CMSGeneralSettingsProps> = ({ bannerData, upd
                            />
                         </div>
                     </fieldset>
+
+                     <fieldset>
+                        <legend className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-4">Data Management</legend>
+                        <div className="p-4 bg-gray-50 dark:bg-gray-900/50 border border-dashed dark:border-gray-700 rounded-lg">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-3 sm:space-y-0">
+                                <button type="button" onClick={handleExport} className="w-full sm:w-auto flex-shrink-0 bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-blue-700 transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center justify-center space-x-2">
+                                    <i className="fas fa-download"></i>
+                                    <span>Export Data</span>
+                                </button>
+                                <label className="w-full sm:w-auto flex-shrink-0 bg-green-600 text-white px-5 py-2 rounded-md hover:bg-green-700 transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 cursor-pointer flex items-center justify-center space-x-2">
+                                    <i className="fas fa-upload"></i>
+                                    <span>Import Data</span>
+                                    <input type="file" accept=".json" onChange={handleImport} className="hidden" />
+                                </label>
+                            </div>
+                             <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">
+                                Save all your content to a backup file. You can import this file later to restore everything. This is highly recommended to prevent data loss.
+                            </p>
+                        </div>
+                    </fieldset>
+
 
                     <div className="flex justify-end items-center pt-4 border-t dark:border-gray-700 mt-8">
                         <button type="submit" className="bg-[#00A884] text-white px-6 py-2 rounded-md hover:bg-[#008a6b] transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00A884]">

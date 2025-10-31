@@ -4,6 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WhatsApp Channel UI</title>
+    <script>
+        // Sets the initial theme based on system preference to prevent a flash of incorrect theme.
+        (function() {
+            try {
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    document.documentElement.classList.add('dark');
+                }
+            } catch (e) {
+                console.error("Error applying initial theme from system preference", e);
+            }
+        })();
+    </script>
     <!-- IMPORTANT: This config script MUST come BEFORE the main Tailwind script -->
     <script>
       tailwind.config = {
@@ -11,6 +23,8 @@
       }
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- IndexedDB Promise-based library -->
+    <script src="https://cdn.jsdelivr.net/npm/idb@7/build/umd.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,7 +39,8 @@
   "imports": {
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
     "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/"
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "idb": "https://aistudiocdn.com/idb@^8.0.3"
   }
 }
 </script>

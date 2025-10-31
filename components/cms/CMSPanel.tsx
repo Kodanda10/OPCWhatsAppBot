@@ -14,6 +14,8 @@ interface CMSPanelProps {
     addPost: (tabId: string, newPostContent: Omit<PostType, 'id' | 'timestamp' | 'profileUrl' | 'stats' | 'author' | 'handle' | 'isEnabled' | 'tabId' | 'createdAt'>) => void;
     addTab: (parentId: string | null, newTab: Omit<TabNode, 'children'>) => void;
     togglePostStatus: (postId: number) => void;
+    updatePostsData: (newData: PostType[]) => void;
+    updateTabsData: (newData: TabNode[]) => void;
 }
 
 const CMSPanel: React.FC<CMSPanelProps> = (props) => {
@@ -26,19 +28,35 @@ const CMSPanel: React.FC<CMSPanelProps> = (props) => {
         addPost, 
         addTab,
         togglePostStatus,
+        updatePostsData,
+        updateTabsData,
     } = props;
-    const [activeView, setActiveView] = useState('posts'); // Default to posts view
+    const [activeView, setActiveView] = useState('general'); // Default to general settings view
 
     const renderActiveView = () => {
         switch (activeView) {
             case 'general':
-                return <CMSGeneralSettings bannerData={bannerData} updateBannerData={updateBannerData} />;
+                return <CMSGeneralSettings 
+                    bannerData={bannerData} 
+                    updateBannerData={updateBannerData} 
+                    postsData={postsData}
+                    tabsData={tabsData}
+                    updatePostsData={updatePostsData}
+                    updateTabsData={updateTabsData}
+                />;
             case 'tabs':
                 return <CMSManageTabs tabsData={tabsData} addTab={addTab} />;
             case 'posts':
                 return <CMSManagePosts tabsData={tabsData} addPost={addPost} postsData={postsData} togglePostStatus={togglePostStatus} />;
             default:
-                return <CMSGeneralSettings bannerData={bannerData} updateBannerData={updateBannerData} />;
+                return <CMSGeneralSettings 
+                    bannerData={bannerData} 
+                    updateBannerData={updateBannerData}
+                    postsData={postsData}
+                    tabsData={tabsData}
+                    updatePostsData={updatePostsData}
+                    updateTabsData={updateTabsData}
+                />;
         }
     };
 
