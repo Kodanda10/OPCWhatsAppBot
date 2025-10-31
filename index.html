@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WhatsApp Channel UI</title>
+    <!-- IMPORTANT: This config script MUST come BEFORE the main Tailwind script -->
+    <script>
+      tailwind.config = {
+        darkMode: 'class', // This enables the class-based dark mode
+      }
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,13 +18,6 @@
     <style>
         body {
             font-family: 'Noto Sans', sans-serif;
-        }
-        /* Basic dark mode variables. Tailwind's dark: prefix will handle the rest. */
-        :root {
-            --background-light: #ECE5DD;
-            --background-dark: #121212;
-            --text-light: #000000;
-            --text-dark: #FFFFFF;
         }
     </style>
 <script type="importmap">
